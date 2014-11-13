@@ -127,7 +127,6 @@ class puppetexplorer (
     'RedHat' => true,
     default  => false,
   },
-  $manage_apache = false,
   # Apache site options:
   $servername         = $::fqdn,
   $ssl                = true,
@@ -135,6 +134,7 @@ class puppetexplorer (
   $proxy_pass         = [{ 'path' => '/api/v4', 'url' => 'http://localhost:8080/v4' }],
   $vhost_options      = {},
 ) {
+  include apache
 
   if $manage_apt {
     apt::source { 'puppetexplorer':
@@ -174,16 +174,13 @@ class puppetexplorer (
     require => Package['puppetexplorer'],
   }
 
-  if $manage_apache {
-    include apache
-    $base_vhost_options = {
-      docroot         => '/usr/share/puppetexplorer',
-      ssl             => $ssl,
-      port            => $port,
-      proxy_pass      => $proxy_pass,
-      ssl_proxyengine => true,
-    }
-
-    create_resources ('apache::vhost', hash([$servername, $base_vhost_options]), $vhost_options)
+  $base_vhost_options = {
+    docroot         => '/usr/share/puppetexplorer',
+    ssl             => $ssl,
+    port            => $port,
+    proxy_pass      => $proxy_pass,
+    ssl_proxyengine => true,
   }
+
+  create_resources ('apache::vhost', hash([$servername, $base_vhost_options]), $vhost_options)
 }
