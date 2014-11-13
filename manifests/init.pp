@@ -32,19 +32,19 @@
 #   name, query and type.
 #   Default: [
 #     {
-#       name  => 'Unresponsive nodes',
-#       type  => 'danger',
-#       query => '#node.report-timestamp < @"now - 2 hours"'
+#       name   => 'Unresponsive nodes',
+#       'type' => 'danger',
+#       query  => '#node.report-timestamp < @"now - 2 hours"'
 #     },
 #     {
-#       name  => 'Nodes in production env',
-#       type  => 'success',
-#       query => '#node.catalog-environment = production'
+#       name   => 'Nodes in production env',
+#       'type' => 'success',
+#       query  => '#node.catalog-environment = production'
 #     },
 #     {
-#       name  => 'Nodes in non-production env',
-#       type  => 'warning',
-#       query => '#node.catalog-environment != production'
+#       name   => 'Nodes in non-production env',
+#       'type' => 'warning',
+#       query  => '#node.catalog-environment != production'
 #     }
 #   ]
 #
@@ -55,6 +55,10 @@
 # [*manage_yum*]
 #   Add yum repo for the module
 #   Defaults to true for $::osfamily RedHat
+#
+# [*webserver_class*]
+#   Name of the class where the webserver is configured
+#   Default: '::puppetexplorer::apache'
 #
 # [*servername*]
 #   The Apache vhost servername. Default: $::fqdn
@@ -104,19 +108,19 @@ class puppetexplorer (
   $unresponsive_hours = 2,
   $dashboard_panels   = [
     {
-      name  => 'Unresponsive nodes',
-      type  => 'danger',
-      query => '#node.report-timestamp < @"now - 2 hours"'
+      name   => 'Unresponsive nodes',
+      'type' => 'danger',
+      query  => '#node.report-timestamp < @"now - 2 hours"'
     },
     {
-      name  => 'Nodes in production env',
-      type  => 'success',
-      query => '#node.catalog-environment = production'
+      name   => 'Nodes in production env',
+      'type' => 'success',
+      query  => '#node.catalog-environment = production'
     },
     {
-      name  => 'Nodes in non-production env',
-      type  => 'warning',
-      query => '#node.catalog-environment != production'
+      name   => 'Nodes in non-production env',
+      'type' => 'warning',
+      query  => '#node.catalog-environment != production'
     }
   ],
   $manage_apt         = $::osfamily ? {
@@ -127,6 +131,9 @@ class puppetexplorer (
     'RedHat' => true,
     default  => false,
   },
+
+  $webserver_class    = '::puppetexplorer::apache',
+
   # Apache site options:
   $servername         = $::fqdn,
   $ssl                = true,
@@ -134,7 +141,6 @@ class puppetexplorer (
   $proxy_pass         = [{ 'path' => '/api/v4', 'url' => 'http://localhost:8080/v4' }],
   $vhost_options      = {},
 ) {
-  include apache
 
   if $manage_apt {
     apt::source { 'puppetexplorer':
@@ -174,13 +180,8 @@ class puppetexplorer (
     require => Package['puppetexplorer'],
   }
 
-  $base_vhost_options = {
-    docroot         => '/usr/share/puppetexplorer',
-    ssl             => $ssl,
-    port            => $port,
-    proxy_pass      => $proxy_pass,
-    ssl_proxyengine => true,
+  if $webserver_class {
+    include $webserver_class
   }
 
-  create_resources ('apache::vhost', hash([$servername, $base_vhost_options]), $vhost_options)
 }
